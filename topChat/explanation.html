@@ -1,0 +1,58 @@
+<i>topChat</i> is a self-contained, pseudo-CLI messaging interface.  Clients created by the service are able to<br>
+send messages to topics, and receive messages from topics they're subscribed to.<br>
+<br>
+There are six commands:<br>
+<br>
+create<br>
+topic<br>
+list clients<br>
+list topics<br>
+subscribe<br>
+send<br>
+<br>
+<b>create</b><br>
+--<br>
+The 'create' command is the starting point for <i>topChat</i>.  It generates client objects for you to interact<br>
+with.  Note that running this command after already creating a set of clients will overwrite the exist<br>
+clients with a new array of blank clients.<br>
+<br>
+<b>topic</b><br>
+--<br>
+The 'topic' command lets you create new topics.<br>
+<br>
+<b>list clients</b><br>
+--<br>
+The 'list clients' command tells you what all of the clients are currently subscribed to.<br>
+<br>
+<b>list topics</b><br>
+--<br>
+The 'list topics' command tells you all of the topics that currently exist.<br>
+<br>
+<b>subscribe</b><br>
+--<br>
+The 'subscribe' commmand lets you assign a client to a new topic.  If the topic doesn't yet exist, it<br>
+will create the topic for you.<br>
+<br>
+<b>send</b><br>
+--<br>
+The 'send' command will broadcast a message that will be picked up by it's topic subscribers.<br>
+<br>
+<br>
+<h1>Example Usage</h1><br>
+Try running the following commands in order to get a demo of what <i>topChat</i> is doing.<br>
+<br>
+<pre>
+create 10					// Creates 10 clients.
+topic whatsnew					// Create a topic called "whatsnew".
+topic hottopic 					// Create a topic called "hottopic".
+topic whatsnew					// Tries to create a new "whatsnew" topic but fails because one already exists.
+subscribe 0 whatsnew				// Subscribes client 0 to the topic "whatsnew".
+subscribe 4 topchatdiscussion			// Creates the topic "topchatdiscussion" and subscribes client 4 to it.
+subscribe 6 whatsnew				// Subscribes client 6 to the topic "whatsnew".
+subscribe 6 hottopic				// Subscribes client 6 to the topic "hottopic".
+list clients					// Prints each client and what they're subscribed to.
+list topics					// Prints all of the topics.
+send 1 "topChat Message!" topchatdiscussion	// Sends the message "topChat Message!" from client 1 to the "topchatdiscussion" topic.
+send 3 "Message to nowhere..." nowhere		// Sends the message "Message to nowhere..." from client 3 to the "nowhere" topic.
+send 0 "This is what's new!" whatsnew		// Sends the message "This is what's new!" from client 0 to the "whatsnew" topic.
+</pre>

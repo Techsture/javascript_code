@@ -1,0 +1,319 @@
+<html>
+<body>
+<script type="text/JavaScript">
+
+// Console
+
+	var client = [];
+	var topic = [];
+
+	function inputKeyDown(evt, input) 
+	{
+        	if (evt.keyCode == 13)						// If the ENTER key is pressed...
+		{
+        	    	var textarea = document.getElementById("console");  	// grab the textarea...
+			var output = parse(input.value);			// parse the input... 
+        	    	textarea.value += "\n" + output;			// and append the output after a newline.
+        	    	input.value = "";					// After that, blank the command line.
+			return false;
+        	}
+	}
+
+	function parse(input)
+	{
+		var output;
+		var parsingArray = input.match(/(".*?")|(\S+)/g);	// Split the input into an array while ignoring
+									// delimiters inside quotations.
+		for(var i=0; i<parsingArray.length; i++)
+		{
+			if(parsingArray[0] == "create")
+			{
+				client.length = 0;			// Clear out the client array and start fresh.
+				for(var j=0; j<parsingArray[1]; j++)	// Create a new client as many times as requested.
+				{
+					client[j] = new Client();
+					client[j].setClient(j);
+				}
+				output = "Created " + parsingArray[1] + " clients.";
+				break;
+			}
+			else if(parsingArray[0] == "list")
+			{
+				if(parsingArray[1] == "clients")
+				{
+					if(client.length != 0)						// First check to make sure there are even clients to print.
+					{
+						for(j=0; j<client.length; j++)				// Iterate through all the clients, printing their properties.
+						{
+							if(j == 0)					// This check is to avoid appending the text onto 'undefined'.
+							{
+								output = client[j].getClient() + "\n";
+							}
+							else
+							{
+								output += client[j].getClient() + "\n";
+							}
+						}
+					}
+					else
+					{
+						output = "There are no clients.";
+						break;
+					}
+				}
+				else if(parsingArray[1] == "topics")
+				{
+					if(topic.length == 0)					// First check to make sure there are even topics to print.
+					{
+						output = "There are currently no topics.";
+					}
+					else
+					{
+						for(j=0; j<topic.length; j++)			// Iterate through all the clients, printing their properties.
+						{
+							if(j == 0)								// This check is to avoid appending
+							{									// the text onto 'undefined'.
+								output = "Current topics are: " + "\n" + topic[j].getTitle();
+							}
+							else
+							{
+								output += "\n" + topic[j].getTitle();
+							}
+						}
+					}
+					break;
+				}
+			}
+			else if(parsingArray[0] == "topic")
+			{
+				var doesTopicExist = false;
+				for(var i=0; i<topic.length; i++)			// Test to see if the topic already exists, so as not to add a duplicate.
+				{
+					if(topic[i].getTitle() == parsingArray[1])
+					{
+						doesTopicExist = true;
+						break;
+					}
+				}
+				if(doesTopicExist == true)				// If it is a duplicate, tell the user and exit from this subroutine (skip.		
+				{							// 'else' and proceed to 'break;'.
+					output = "This topic already exists.";
+				}
+				else							// If it's a new topic, add it to the topic list.
+				{	
+					topic[topic.length] = new Topic();
+					topic[topic.length - 1].setTitle(parsingArray[1]);
+					output = "New topic is: " + topic[topic.length - 1].getTitle();
+				}
+				break;
+			}
+			else if(parsingArray[0] == "send")
+			{
+				var message = new Message();		// Neither the message, or the server really need to persist, so just use local variables.
+				var server = new Server();
+				message.setMessage(parsingArray[1], parsingArray[2], parsingArray[3]);		// Send all the parameters to the message constructor.
+				output = server.processMessage(message);					// Process the message.
+				if(!output)									// If the message went to a group that no one is
+				{										// subscribed to, tell the user.  Otherwise, continue
+					output = "Message had no receipients.";					// on to 'return output;' and output the stored message.
+				}
+				break;
+			}
+			else if(parsingArray[0] == "subscribe")
+			{
+				var isClientSubscribed = false;
+				var subscriptionHolder = client[parsingArray[1]].getSubscription();
+				for(var i=0; i<subscriptionHolder.length; i++)
+				{
+					if(parsingArray[2] == subscriptionHolder[i])
+					{
+						isClientSubscribed = true;
+						break;
+					}
+				}
+				if(!isClientSubscribed)
+				{
+					client[parsingArray[1]].setSubscription(parsingArray[2]);	// Set the requested client's subscription via the Subscription constructor.
+					output = client[parsingArray[1]].getClient();			// Return the client's parameters.
+					for(var i=0; i<topic.length; i++)				// This section adds the subscription to the list of topics...
+					{
+						var doesTopicExist = false;
+						if(topic[i].getTitle() == parsingArray[2])		// provided it doesn't already exist...
+						{
+							doesTopicExist = true;
+							break;
+						}
+					}
+					if(!doesTopicExist)						// and if it doesn't, calls the Topic constructor for setting a new topic.
+					{
+						topic[topic.length] = new Topic();
+						topic[topic.length - 1].setTitle(parsingArray[2]);
+					}
+					break;
+				}
+				else
+				{
+					output = "Client is already subscribed to this topic.";
+				}
+			}
+			else
+			{
+				output = "Bad command.";	// Whatever the user entered into the command line doesn't parse properly.
+				break;
+			}
+			break;
+		}
+		return output;		// This captures whatever the output was of the above commands and returns them for printing to the 'inputKeyDown' function.
+	}
+
+// Objects
+
+	function Client()
+	{
+		var mNumber;
+		var mSubscriptions = [];
+		this.setClient = function(number)
+		{
+			mNumber = number;
+		};
+		this.getClient = function()
+		{
+			var returnClient = "Client " + mNumber + " ";
+			if(mSubscriptions.length == 0)
+			{
+				returnClient += "has no subscriptions.";
+			}
+			else
+			{
+				returnClient += "is subscribed to ";
+				for(var i=0; i<mSubscriptions.length; i++)
+				{
+					returnClient += mSubscriptions[i];
+					if(i == mSubscriptions.length - 1)	// This section is just for grammatical accuracy (.'s vs. ,'s in lists of items).
+					{
+						returnClient += ".";
+					}
+					else
+					{
+						returnClient += ", ";
+					}
+				}
+			}
+			return returnClient;
+		};
+		this.getClientNumber = function()
+		{
+			return mNumber;
+		};
+		this.setSubscription = function(subscription)
+		{
+			mSubscriptions.push(subscription);
+		};
+		this.getSubscription = function()
+		{
+			return mSubscriptions;
+		};
+		this.receiveMessage = function(message)		// If the client got a message from a topic it's subscribed to, it returns this message."
+		{
+			var response = 	"I got the message " + message.getBody() + " from Client " + message.getClient() + " because I'm subscribed to topic " + message.getTopic() + ".";
+			return response;
+		};
+	}
+
+	function Message()
+	{
+		var mClient;
+		var mBody;
+		var mTopic;
+		this.setMessage = function(client, body, topic)
+		{
+			mClient = client;
+			mBody = body;
+			mTopic = topic;
+		};
+		this.getClient = function()
+		{
+			return mClient;
+		};
+		this.getBody = function()
+		{
+			return mBody;
+		};
+		this.getTopic = function()
+		{	
+			return mTopic;
+		}
+	}
+
+	function Server()
+	{
+		this.processMessage = function(message)
+		{
+			var response;
+			var firstFlag = true;
+			if(message.getClient() > client.length)						// Checks to make sure the client sending the message exists.
+			{
+				response = "This client does not exist."
+				return response;
+			}
+			else for(var i=0; i<topic.length; i++)
+			{
+				for(var j=0; j<client.length; j++)					// iterate through all the clients...
+				{
+					var subscriptionHolder = client[j].getSubscription();
+					for(var k=0; k<subscriptionHolder.length; k++)			// then iterate through all the subscriptions the current client...
+					{
+						if(subscriptionHolder[k] == message.getTopic())		// and send the message to the client if its subscriptions match the
+						{							// current topic.
+							if(firstFlag == true)				// This check is to avoid appending the text onto 'undefined'.
+							{
+								response = "Client " + client[j].getClientNumber() + " says: " + client[j].receiveMessage(message) + "\n";
+								firstFlag = false;
+							}
+							else
+							{
+								response += "Client " + client[j].getClientNumber() + " says: " + client[j].receiveMessage(message) + "\n";
+							}
+						}
+					}
+				}
+				return response;
+			}
+		};
+	}
+
+	function Topic()
+	{
+		var mTitle;
+		this.setTitle = function(title)
+		{
+			mTitle = title;
+		};
+		this.getTitle = function()
+		{
+			return mTitle;
+		};
+	}
+
+</script>
+
+<!-- Console Rendering -->
+
+topChat<br>
+<textarea rows="64" cols="105" id="console" readonly></textarea><br>
+
+COMMAND:	<input id="command" onkeydown="return inputKeyDown(event, this);" size="128" type="text"/><br>
+<pre>
+Available commands are:
+	create [numberOfClients]		// Create a new array of this many clients (starting at Client 0).
+	list clients				// List all of the current clients and their subscriptions.
+	list topics				// List all topics.
+	send [clientNumber] "[message]" [topic]	// Send a message (enclosed in double-quotes) from the specifiend client to the specified topic.
+	subscribe [clientNumber] [topic]	// Subscribe the client (specified by their number) to a topic.
+	topic [topic]				// Create a new topic
+</pre>
+
+<a href="explanation.html" target="_blank">Click here</a> for an explanation.
+
+</body>
+</html>
